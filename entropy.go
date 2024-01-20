@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"strings"
 )
 
 // Helper functions
@@ -67,15 +68,15 @@ func checkFileExists(filename string) bool {
 
 func main() {
 	// Prepare for parsing command line args
-	showGraph := flag.Bool("g", false, "Graph output")
+	graphBins := flag.Int("b", 10, "Number of bins on graph")
+	graphLength := flag.Int("l", 30, "Max graph bar length")
+	showGraph := flag.Bool("g", false, "Show output graph ")
 	numberOnlyOutput := flag.Bool("q", false, "Number-only output (quiet mode)")
-
-	_, _ = numberOnlyOutput, showGraph
 
 	// Custom Usage message
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
-		fmt.Fprintf(flag.CommandLine.Output(), "%s [-q/-g] file\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "%s [flags] file\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 
@@ -109,8 +110,48 @@ func main() {
 
 	// Calculate entropy in bits (might add different types later)
 	entropy := calculateEntropyBits(byteValueCounter, byteCount)
+	// Trick to prevent ugly -0.0 from displaying
+	// At this point, entropy can be assumed to be >= 0
+	if math.Signbit(entropy) {
+		entropy = -entropy
+	}
 
 	// Display output
-	// TODO: different display types
-	fmt.Printf("Entropy: %.06f\n", entropy)
+	if *numberOnlyOutput {
+		// Number only (quiet) mode
+		fmt.Println(entropy)
+	} else {
+		// Normal mode
+		fmt.Printf("Filename: %s\n", filename)
+		fmt.Printf("Bytes: %d\n", byteCount)
+		fmt.Printf("Entropy: %.06f Sh\n", math.Round(entropy*1000000.0)/1000000.0)
+	}
+
+	if *showGraph {
+		graphChar := "█"
+		binsCount := *graphBins
+		maxDisplayLength := *graphLength
+		bins := make([]uint64, binsCount)
+		maxBinValue := uint64(0)
+
+		// Divide values into bins
+		for i := 0; i < binsCount; i++ {
+			binStart := 256 * i / binsCount
+			binEnd := 256 * (i + 1) / binsCount
+			for j := binStart; j < binEnd; j++ {
+				bins[i] += byteValueCounter[j]
+			}
+			if maxBinValue < bins[i] {
+				maxBinValue = bins[i]
+			}
+		}
+
+		// Display graph
+		displayLengthMultiplier := float64(maxDisplayLength) / float64(maxBinValue)
+		fmt.Printf("\nValues     0 Counts%s%d\n", strings.Repeat(" ", maxDisplayLength-11), maxBinValue)
+		for i := 0; i < binsCount; i++ {
+			fmt.Printf("%3d - %3d: ", 256*i/binsCount, (256*(i+1)/binsCount)-1)
+			fmt.Printf("%s\n", strings.Repeat(graphChar, int(math.Round(float64(bins[i])*displayLengthMultiplier))))
+		}
+	}
 }
