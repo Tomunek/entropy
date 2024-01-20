@@ -34,7 +34,7 @@ func countBytesInFile(filename string) ([]uint64, uint64, error) {
 		if err != nil {
 			return nil, 0, err
 		}
-		// Count occurances of each byte value
+		// Count occurrences of each byte value
 		if bytesRead > 0 {
 			for i := 0; i < bytesRead; i++ {
 				byteValueCounter[int(buffer[i])]++
