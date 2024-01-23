@@ -90,6 +90,18 @@ func main() {
 		os.Exit(2)
 	}
 
+	// Range check integer arguments
+	if *graphBins < 2 || *graphBins > 256 {
+		fmt.Fprintf(flag.CommandLine.Output(), "number of bins must be between 2 and 256 (%d given)\n", *graphBins)
+		flag.Usage()
+		os.Exit(2)
+	}
+	if *graphLength < 12 || *graphLength > 256 {
+		fmt.Fprintf(flag.CommandLine.Output(), "max length of bar must be between 12 and 256 (%d given)\n", *graphLength)
+		flag.Usage()
+		os.Exit(2)
+	}
+
 	// Get filename (last arg)
 	filename := os.Args[len(os.Args)-1]
 
@@ -110,6 +122,7 @@ func main() {
 
 	// Calculate entropy in bits (might add different types later)
 	entropy := calculateEntropyBits(byteValueCounter, byteCount)
+
 	// Trick to prevent ugly -0.0 from displaying
 	// At this point, entropy can be assumed to be >= 0
 	if math.Signbit(entropy) {
